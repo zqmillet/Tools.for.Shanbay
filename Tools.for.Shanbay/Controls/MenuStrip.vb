@@ -28,7 +28,6 @@
         Private Sub ToolStripMenuItem_Click(ByVal sender As System.Object, ByVal e As System.EventArgs)
             Select Case CType(sender, ToolStripMenuItem)
                 Case MenuItem_Account
-                    MsgBox("haha")
                     RaiseEvent MenuItem_Account_Click()
             End Select
         End Sub
