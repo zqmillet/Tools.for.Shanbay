@@ -8,3 +8,4 @@ D:\iProject\Tools.for.Shanbay\Tools.for.Shanbay\bin\Debug\Tools.for.Shanbay.xml
 D:\iProject\Tools.for.Shanbay\Tools.for.Shanbay\obj\Debug\Tools.for.Shanbay.exe
 D:\iProject\Tools.for.Shanbay\Tools.for.Shanbay\obj\Debug\Tools.for.Shanbay.pdb
 D:\iProject\Tools.for.Shanbay\Tools.for.Shanbay\obj\Debug\Tools.for.Shanbay.vbprojResolveAssemblyReference.cache
+D:\iProject\Tools.for.Shanbay\Tools.for.Shanbay\obj\Debug\Tools.for.Shanbay.FormAccount.resources

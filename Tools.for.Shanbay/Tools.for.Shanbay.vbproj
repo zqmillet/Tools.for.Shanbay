@@ -69,16 +69,22 @@
     <Import Include="System.Xml.Linq" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Account\FormAccount.Designer.vb">
+      <DependentUpon>FormAccount.vb</DependentUpon>
+    </Compile>
+    <Compile Include="Account\FormAccount.vb">
+      <SubType>Form</SubType>
+    </Compile>
     <Compile Include="Controls\MenuStrip.vb">
       <SubType>Component</SubType>
     </Compile>
     <Compile Include="Controls\TabControl.vb">
       <SubType>Component</SubType>
     </Compile>
-    <Compile Include="FormMain.vb">
+    <Compile Include="Controls\FormMain.vb">
       <SubType>Form</SubType>
     </Compile>
-    <Compile Include="FormMain.Designer.vb">
+    <Compile Include="Controls\FormMain.Designer.vb">
       <DependentUpon>FormMain.vb</DependentUpon>
       <SubType>Form</SubType>
     </Compile>
@@ -99,7 +105,10 @@
     </Compile>
   </ItemGroup>
   <ItemGroup>
-    <EmbeddedResource Include="FormMain.resx">
+    <EmbeddedResource Include="Account\FormAccount.resx">
+      <DependentUpon>FormAccount.vb</DependentUpon>
+    </EmbeddedResource>
+    <EmbeddedResource Include="Controls\FormMain.resx">
       <DependentUpon>FormMain.vb</DependentUpon>
     </EmbeddedResource>
     <EmbeddedResource Include="My Project\Resources.resx">

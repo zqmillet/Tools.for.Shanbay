@@ -1,4 +1,4 @@
-﻿Namespace This
+﻿Namespace _FormMain
     Public Class TabControl
         Inherits Windows.Forms.TabControl
 

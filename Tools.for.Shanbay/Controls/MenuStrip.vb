@@ -1,4 +1,4 @@
-﻿Namespace This
+﻿Namespace _FormMain
     Public Class MenuStrip
         Inherits Windows.Forms.MenuStrip
 
