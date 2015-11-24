@@ -1,7 +1,11 @@
 ﻿Imports System.Text.RegularExpressions
+Imports HtmlAgilityPack
 
 Public Class FormAccount
     Private AccountFilePath As String = Application.StartupPath & "\Account.nfo"
+    Private RowHeight As Integer = 25
+    Private FormHeightWithCaptcha As Integer = 138
+    Private FormHeightWithoutCaptcha As Integer = FormHeightWithCaptcha - RowHeight - 2
 
     Private TableLayoutPanel As New TableLayoutPanel
     Private ButtonTest As New Button
@@ -9,15 +13,36 @@ Public Class FormAccount
     Private ButtonQuit As New Button
     Private TextBoxUserName As New TextBox
     Private TextBoxPassword As New TextBox
+    Private TextBoxCaptcha As New TextBox
     Private LabelUserName As New Label
     Private LabelPassword As New Label
+    Private LabelCaptcha As New Label
+
 
     Private WebBrowser As New WebBrowser
+    Private StatusStrip As New StatusStrip
+    Private WebBrowserLoaded As Boolean = False
 
     Public Sub New()
         InitializeComponent()
+        InitializeWebBrowser()
         InitializeInterface()
         ReadAccountInformation()
+    End Sub
+
+    Private Sub InitializeWebBrowser()
+        With WebBrowser
+            AddHandler WebBrowser.DocumentCompleted, AddressOf WebBrowser_DocumentCompleted
+            .Navigate("http://www.shanbay.com/accounts/login/")
+            Do Until .ReadyState = WebBrowserReadyState.Complete
+                Application.DoEvents()
+            Loop
+        End With
+    End Sub
+
+    Private Sub WebBrowser_DocumentCompleted(sender As Object, e As WebBrowserDocumentCompletedEventArgs)
+        MsgBox("com")
+        WebBrowserLoaded = True
     End Sub
 
     Private Sub InitializeInterface()
@@ -31,6 +56,12 @@ Public Class FormAccount
             .TextAlign = ContentAlignment.MiddleLeft
         End With
 
+        With LabelCaptcha
+            .Text = "Captcha"
+            .Visible = False
+            .TextAlign = ContentAlignment.MiddleLeft
+        End With
+
         With TextBoxUserName
             .Dock = DockStyle.Fill
             AddHandler .TextChanged, AddressOf TextBox_TextChanged
@@ -39,6 +70,12 @@ Public Class FormAccount
         With TextBoxPassword
             .Dock = DockStyle.Fill
             .PasswordChar = "*"
+            AddHandler .TextChanged, AddressOf TextBox_TextChanged
+        End With
+
+        With TextBoxCaptcha
+            .Dock = DockStyle.Fill
+            .Visible = False
             AddHandler .TextChanged, AddressOf TextBox_TextChanged
         End With
 
@@ -65,11 +102,16 @@ Public Class FormAccount
         With TableLayoutPanel
             .Dock = DockStyle.Fill
             .ColumnCount = 4
-            .RowCount = 3
             .ColumnStyles.Add(New ColumnStyle(SizeType.Absolute, 60.0F))
             .ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 20.0F))
             .ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 20.0F))
             .ColumnStyles.Add(New ColumnStyle(SizeType.Percent, 20.0F))
+
+            .RowCount = 4
+            .RowStyles.Add(New RowStyle(SizeType.Absolute, RowHeight))
+            .RowStyles.Add(New RowStyle(SizeType.Absolute, RowHeight))
+            .RowStyles.Add(New RowStyle(SizeType.Absolute, RowHeight))
+            .RowStyles.Add(New RowStyle(SizeType.Absolute, RowHeight))
             .Padding = New Padding(2)
 
             .Controls.Add(LabelUserName, 0, 0)
@@ -80,26 +122,91 @@ Public Class FormAccount
             .SetColumnSpan(TextBoxPassword, 3)
             .Controls.Add(TextBoxPassword, 1, 1)
 
-            .Controls.Add(ButtonTest, 1, 2)
-            .Controls.Add(ButtonSave, 2, 2)
-            .Controls.Add(ButtonQuit, 3, 2)
+            .Controls.Add(LabelCaptcha, 0, 2)
+            .SetColumnSpan(TextBoxCaptcha, 2)
+            .Controls.Add(TextBoxCaptcha, 1, 2)
+            .RowStyles(2).Height = 0
+
+            .Controls.Add(ButtonTest, 1, 3)
+            .Controls.Add(ButtonSave, 2, 3)
+            .Controls.Add(ButtonQuit, 3, 3)
+        End With
+
+        With StatusStrip
+            .SizingGrip = False
         End With
 
         With Me
-            .Size = New Size(300, 130)
+            .ClientSize = New Size(300, FormHeightWithoutCaptcha)
             .FormBorderStyle = FormBorderStyle.FixedSingle
 
             .ControlBox = False
             .Controls.Add(TableLayoutPanel)
+            .Controls.Add(StatusStrip)
 
             .AcceptButton = ButtonSave
             .CancelButton = ButtonQuit
         End With
     End Sub
 
-    Private Sub ButtonTest_Click(sender As Object, e As EventArgs)
-        WebBrowser.Navigate("http://www.shanbay.com/accounts/login/")
+    Private Sub ShowCaptchaLine()
+        Dim HtmlDocument As New HtmlAgilityPack.HtmlDocument
+        HtmlDocument.LoadHtml(WebBrowser.Document.Body.InnerHtml)
 
+        Dim Visible = Not (HtmlDocument.DocumentNode.SelectSingleNode("//input[@id='id_captcha_1']") Is Nothing)
+        If Visible Then
+            Me.ClientSize = New Size(Me.ClientSize.Width, FormHeightWithCaptcha)
+            TableLayoutPanel.RowStyles(2).Height = RowHeight
+        Else
+            Me.ClientSize = New Size(Me.ClientSize.Width, FormHeightWithoutCaptcha)
+            TableLayoutPanel.RowStyles(2).Height = 0
+        End If
+
+        LabelCaptcha.Visible = Visible
+        TextBoxCaptcha.Visible = Visible
+    End Sub
+
+    Private Sub ButtonTest_Click(sender As Object, e As EventArgs)
+        ButtonTest.Enabled = False
+
+        Dim TextBoxUsername As HtmlElement = WebBrowser.Document.GetElementById("id_username")
+        If TextBoxUsername Is Nothing Then
+            Exit Sub
+        End If
+
+        Dim TextBoxPassword As HtmlElement = WebBrowser.Document.GetElementById("id_password")
+        If TextBoxPassword Is Nothing Then
+            Exit Sub
+        End If
+
+        Dim ButtonSubmit As HtmlElement = Nothing
+        For Each HtmlElement As HtmlElement In WebBrowser.Document.GetElementsByTagName("button")
+            If HtmlElement.OuterHtml.Replace(" ", "").Contains("type=submit") Then
+                ButtonSubmit = HtmlElement
+            End If
+        Next
+        If ButtonSubmit Is Nothing Then
+            Exit Sub
+        End If
+
+        TextBoxUsername.SetAttribute("value", Me.TextBoxUserName.Text)
+        TextBoxPassword.SetAttribute("value", Me.TextBoxPassword.Text)
+
+        WebBrowserLoaded = False
+        ButtonSubmit.InvokeMember("click")
+        While Not WebBrowserLoaded
+            Application.DoEvents()
+        End While
+
+        MsgBox(WebBrowser.DocumentTitle)
+        If WebBrowser.Document.GetElementById("id_username") Is Nothing Then
+            MsgBox("Success")
+        Else
+            MsgBox("Fail")
+        End If
+
+        ButtonTest.Enabled = True
+        ShowCaptchaLine()
     End Sub
 
     Private Sub ButtonSave_Click(sender As Object, e As EventArgs)
