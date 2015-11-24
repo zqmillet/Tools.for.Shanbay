@@ -17,16 +17,18 @@ Public Class FormAccount
     Private LabelUserName As New Label
     Private LabelPassword As New Label
     Private LabelCaptcha As New Label
-
+    Private PictureBoxCaptcha As New PictureBox
 
     Private WebBrowser As New WebBrowser
     Private StatusStrip As New StatusStrip
+    Private ToolStripStatusLabel As New ToolStripStatusLabel
+
     Private WebBrowserLoaded As Boolean = False
 
     Public Sub New()
         InitializeComponent()
-        InitializeWebBrowser()
         InitializeInterface()
+        InitializeWebBrowser()
         ReadAccountInformation()
     End Sub
 
@@ -34,14 +36,16 @@ Public Class FormAccount
         With WebBrowser
             AddHandler WebBrowser.DocumentCompleted, AddressOf WebBrowser_DocumentCompleted
             .Navigate("http://www.shanbay.com/accounts/login/")
+            .Dock = DockStyle.Fill
             Do Until .ReadyState = WebBrowserReadyState.Complete
                 Application.DoEvents()
             Loop
         End With
+
+        ShowCaptchaLine()
     End Sub
 
     Private Sub WebBrowser_DocumentCompleted(sender As Object, e As WebBrowserDocumentCompletedEventArgs)
-        MsgBox("com")
         WebBrowserLoaded = True
     End Sub
 
@@ -77,6 +81,12 @@ Public Class FormAccount
             .Dock = DockStyle.Fill
             .Visible = False
             AddHandler .TextChanged, AddressOf TextBox_TextChanged
+        End With
+
+        With PictureBoxCaptcha
+            .Dock = DockStyle.Fill
+            .Visible = False
+            .SizeMode = PictureBoxSizeMode.StretchImage
         End With
 
         With ButtonTest
@@ -125,6 +135,7 @@ Public Class FormAccount
             .Controls.Add(LabelCaptcha, 0, 2)
             .SetColumnSpan(TextBoxCaptcha, 2)
             .Controls.Add(TextBoxCaptcha, 1, 2)
+            .Controls.Add(PictureBoxCaptcha, 3, 2)
             .RowStyles(2).Height = 0
 
             .Controls.Add(ButtonTest, 1, 3)
@@ -132,18 +143,24 @@ Public Class FormAccount
             .Controls.Add(ButtonQuit, 3, 3)
         End With
 
+        With ToolStripStatusLabel
+            .Text = ""
+        End With
+
         With StatusStrip
             .SizingGrip = False
+            .Items.Add(ToolStripStatusLabel)
         End With
 
         With Me
             .ClientSize = New Size(300, FormHeightWithoutCaptcha)
-            .FormBorderStyle = FormBorderStyle.FixedSingle
+            .FormBorderStyle = FormBorderStyle.FixedDialog
 
             .ControlBox = False
+            .MaximizeBox = False
+
             .Controls.Add(TableLayoutPanel)
             .Controls.Add(StatusStrip)
-
             .AcceptButton = ButtonSave
             .CancelButton = ButtonQuit
         End With
@@ -164,6 +181,19 @@ Public Class FormAccount
 
         LabelCaptcha.Visible = Visible
         TextBoxCaptcha.Visible = Visible
+        PictureBoxCaptcha.Visible = Visible
+
+        If Visible Then
+            Dim CaptchaImageURL As String = ""
+            For Each HtmlNode As HtmlNode In HtmlDocument.DocumentNode.SelectNodes("//img[@class='captcha']")
+                CaptchaImageURL = HtmlNode.GetAttributeValue("src", "")
+            Next
+            If CaptchaImageURL = "" Then
+                MsgBox("Can't Find Captcha Image URL")
+            Else
+                PictureBoxCaptcha.ImageLocation = CaptchaImageURL
+            End If
+        End If
     End Sub
 
     Private Sub ButtonTest_Click(sender As Object, e As EventArgs)
@@ -177,6 +207,14 @@ Public Class FormAccount
         Dim TextBoxPassword As HtmlElement = WebBrowser.Document.GetElementById("id_password")
         If TextBoxPassword Is Nothing Then
             Exit Sub
+        End If
+
+        If Me.TextBoxCaptcha.Visible Then
+            Dim TextBoxCaptcha As HtmlElement = WebBrowser.Document.GetElementById("id_captcha_1")
+            If TextBoxCaptcha Is Nothing Then
+                Exit Sub
+            End If
+            TextBoxCaptcha.SetAttribute("value", Me.TextBoxCaptcha.Text)
         End If
 
         Dim ButtonSubmit As HtmlElement = Nothing
@@ -198,15 +236,14 @@ Public Class FormAccount
             Application.DoEvents()
         End While
 
-        MsgBox(WebBrowser.DocumentTitle)
         If WebBrowser.Document.GetElementById("id_username") Is Nothing Then
-            MsgBox("Success")
+            ToolStripStatusLabel.Text = "The account and password are correct!"
         Else
-            MsgBox("Fail")
+            ToolStripStatusLabel.Text = "The account and password are not correct!"
         End If
 
         ButtonTest.Enabled = True
-        ShowCaptchaLine()
+        InitializeWebBrowser()
     End Sub
 
     Private Sub ButtonSave_Click(sender As Object, e As EventArgs)
